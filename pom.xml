@@ -12,6 +12,7 @@
         <module>dispatcher</module>
         <module>common-rabbitmq</module>
         <module>node</module>
+        <module>common-jpa</module>
     </modules>
 
     <properties>
@@ -40,22 +41,22 @@
             <version>1.2.17</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-data-jpa</artifactId>-->
+<!--        </dependency>-->
 
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.5.4</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.postgresql</groupId>-->
+<!--            <artifactId>postgresql</artifactId>-->
+<!--            <version>42.5.4</version>-->
+<!--        </dependency>-->
 
-        <dependency>
-            <groupId>com.vladmihalcea</groupId>
-            <artifactId>hibernate-types-52</artifactId>
-            <version>2.21.1</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.vladmihalcea</groupId>-->
+<!--            <artifactId>hibernate-types-52</artifactId>-->
+<!--            <version>2.21.1</version>-->
+<!--        </dependency>-->
     </dependencies>
     <build>
         <plugins>

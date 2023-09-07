@@ -14,7 +14,8 @@ import javax.persistence.*;
 // @Data, @Builder, @NoArgsConstructor, @AllArgsConstructor - аннотации lombok
 // Позволяют сгенерировать геттеры, сеттеры. Внутренний клас Builder для удобного создания объекта класса (паттерн)
 // Аннотации с args позволяют сгенерировать конструкторы по умолчанию (без параметров и со всеми параметрами)
-//@Data
+//@Data //- если его использовать, то будет автоматически сгенерированы EqualsAndHashCode из всех полей, а этого не надо
+// т.к. id меняется в течение жизни и его надо исключить. Подробнее см. в тесте MainServiceImplTest
 @Getter
 @Setter
 @EqualsAndHashCode(exclude = "id")
