@@ -9,12 +9,14 @@ import ru.maritariny.dao.AppUserDAO;
 import ru.maritariny.dao.RawDataDAO;
 
 import ru.maritariny.entity.AppDocument;
+import ru.maritariny.entity.AppPhoto;
 import ru.maritariny.entity.AppUser;
 import ru.maritariny.entity.RawData;
 import ru.maritariny.exceptions.UploadFileException;
 import ru.maritariny.service.FileService;
 import ru.maritariny.service.MainService;
 import ru.maritariny.service.ProducerService;
+import ru.maritariny.service.enums.LinkType;
 import ru.maritariny.service.enums.ServiceCommand;
 
 import static ru.maritariny.entity.enums.UserState.BASIC_STATE;
@@ -81,14 +83,13 @@ public class MainServiceImpl implements MainService {
         if (isNotAllowToSendContent(chatId, appUser)) {
             return;
         }
-
        // var answer = "Документ успешно загружен! Ссылка для скачивания";
        // sendAnswer(answer, chatId);
         try {
             AppDocument doc = fileService.processDoc(update.getMessage());
             // Генерация ссылки для скачивания документа
-            //String link = fileService.generateLink(doc.getId(), LinkType.GET_DOC);
-            String link = "ololo";
+            String link = fileService.generateLink(doc.getId(), LinkType.GET_DOC);
+            //String link = "ololo";
             var answer = "Документ успешно загружен! "
                                 + "Ссылка для скачивания: " + link;
             sendAnswer(answer, chatId);
@@ -107,23 +108,21 @@ public class MainServiceImpl implements MainService {
         if (isNotAllowToSendContent(chatId, appUser)) {
             return;
         }
-
-        var answer = "Фото успешно загружено! Ссылка для скачивания";
-        sendAnswer(answer, chatId);
-
-//
-//        try {
-//            AppPhoto photo = fileService.processPhoto(update.getMessage());
-//            // Генерация ссылки для скачивания фото
-//            String link = fileService.generateLink(photo.getId(), LinkType.GET_PHOTO);
-//            var answer = "Фото успешно загружено! "
-//                    + "Ссылка для скачивания: " + link;
-//            sendAnswer(answer, chatId);
-//        } catch (UploadFileException e) {
-//            log.error(e);
-//            String error = "К сожалению, загрузка фото не удалась. Повторите попытку позже.";
-//            sendAnswer(error, chatId);
-//        }
+        //var answer = "Фото успешно загружено! Ссылка для скачивания";
+        //sendAnswer(answer, chatId);
+        try {
+            AppPhoto photo = fileService.processPhoto(update.getMessage());
+            // Генерация ссылки для скачивания фото
+            String link = fileService.generateLink(photo.getId(), LinkType.GET_PHOTO);
+            //String link = "ololoshka";
+            var answer = "Фото успешно загружено! "
+                    + "Ссылка для скачивания: " + link;
+            sendAnswer(answer, chatId);
+        } catch (UploadFileException e) {
+            log.error(e);
+            String error = "К сожалению, загрузка фото не удалась. Повторите попытку позже.";
+            sendAnswer(error, chatId);
+        }
     }
 
     private boolean isNotAllowToSendContent(Long chatId, AppUser appUser) {

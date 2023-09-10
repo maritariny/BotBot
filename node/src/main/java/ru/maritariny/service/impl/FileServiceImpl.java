@@ -8,17 +8,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Message;
-//import org.telegram.telegrambots.meta.api.objects.PhotoSize;
+import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import ru.maritariny.dao.AppDocumentDAO;
-//import ru.maritariny.dao.AppPhotoDAO;
+import ru.maritariny.dao.AppPhotoDAO;
 import ru.maritariny.dao.BinaryContentDAO;
 import ru.maritariny.entity.AppDocument;
-//import ru.maritariny.entity.AppPhoto;
+import ru.maritariny.entity.AppPhoto;
 import ru.maritariny.entity.BinaryContent;
 import ru.maritariny.exceptions.UploadFileException;
 import ru.maritariny.service.FileService;
-//import ru.maritariny.service.enums.LinkType;
-//import ru.maritariny.utils.CryptoTool;
+import ru.maritariny.service.enums.LinkType;
+import ru.maritariny.utils.CryptoTool;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,42 +34,22 @@ public class FileServiceImpl implements FileService {
     private String fileInfoUri;
     @Value("${service.file_storage.uri}")
     private String fileStorageUri;
-    //@Value("${link.address}")
-    //private String linkAddress;
+    @Value("${link.address}")
+    private String linkAddress;
     private final AppDocumentDAO appDocumentDAO; // Внедрение бинов
-   // private final AppPhotoDAO appPhotoDAO; // Внедрение бина для сохранения объекта фото в базу
+    private final AppPhotoDAO appPhotoDAO; // Внедрение бина для сохранения объекта фото в базу
     private final BinaryContentDAO binaryContentDAO;
-    //private final CryptoTool cryptoTool; // Внедрение бина для шифрования номера файла в ссылке
+    private final CryptoTool cryptoTool; // Внедрение бина для шифрования номера файла в ссылке
 
-    public FileServiceImpl(AppDocumentDAO appDocumentDAO, BinaryContentDAO binaryContentDAO) {
-            this.appDocumentDAO = appDocumentDAO;
-       // this.appPhotoDAO = appPhotoDAO;
+    public FileServiceImpl(AppDocumentDAO appDocumentDAO, AppPhotoDAO appPhotoDAO, BinaryContentDAO binaryContentDAO, CryptoTool cryptoTool) {
+        this.appDocumentDAO = appDocumentDAO;
+        this.appPhotoDAO = appPhotoDAO;
         this.binaryContentDAO = binaryContentDAO;
-       // this.cryptoTool = cryptoTool;
+        this.cryptoTool = cryptoTool;
     }
 
     @Override
     public AppDocument processDoc(Message telegramMessage) {
-
-//        String fileId = telegramMessage.getDocument().getFileId();
-//        ResponseEntity<String> response = getFilePath(fileId);
-//        if (response.getStatusCode() == HttpStatus.OK) {
-//            JSONObject jsonObject = new JSONObject(response.getBody());
-//            String filePath = String.valueOf(jsonObject
-//                    .getJSONObject("result")
-//                    .getString("file_path"));
-//            byte[] fileInByte = downloadFile(filePath);
-//            BinaryContent transientBinaryContent = BinaryContent.builder()
-//                    .fileAsArrayOfBytes(fileInByte)
-//                    .build();
-//            BinaryContent persistentBinaryContent = binaryContentDAO.save(transientBinaryContent);
-//            Document telegramDoc = telegramMessage.getDocument();
-//            AppDocument transientAppDoc = buildTransientAppDoc(telegramDoc, persistentBinaryContent);
-//            return appDocumentDAO.save(transientAppDoc);
-//
-//        } else {
-//           throw new UploadFileException("Bad response from telegram service: " + response); // кастомное исключение
-//        }
         Document telegramDoc = telegramMessage.getDocument();
         String fileId = telegramMessage.getDocument().getFileId();
         ResponseEntity<String> response = getFilePath(fileId); // http get запрос к серверу телеграма
@@ -82,22 +62,23 @@ public class FileServiceImpl implements FileService {
         }
     }
 
-//    @Override
-//    public AppPhoto processPhoto(Message telegramMessage) {
-//        //TODO пока что обрабатывается только одно фото в сообщении
-//        var photoSizeCount = telegramMessage.getPhoto().size();
-//        var photoIndex = photoSizeCount > 1 ? photoSizeCount - 1: 0;
-//        PhotoSize telegramPhoto = telegramMessage.getPhoto().get(photoIndex);
-//        String fileId = telegramPhoto.getFileId();
-//        ResponseEntity<String> response = getFilePath(fileId); // http get запрос к серверу телеграма
-//        if (response.getStatusCode() == HttpStatus.OK) {
-//            BinaryContent persistentBinaryContent = getPersistentBinaryContent(response);
-//            AppPhoto transientAppPhoto = buildTransientAppPhoto(telegramPhoto, persistentBinaryContent);
-//            return appPhotoDAO.save(transientAppPhoto); // сохранение в БД, вернется persistentObject
-//        } else {
-//            throw new UploadFileException("Bad response from telegram service: " + response); // кастомное исключение
-//        }
-//    }
+    @Override
+    public AppPhoto processPhoto(Message telegramMessage) {
+        //TODO пока что обрабатывается только одно фото в сообщении
+        var photoSizeCount = telegramMessage.getPhoto().size();
+        var photoIndex = photoSizeCount > 1 ? photoSizeCount - 1: 0;
+        // в тг фото хранится в нескольких размерах по возврастанию. получаем наибольший индекс и фото по нему
+        PhotoSize telegramPhoto = telegramMessage.getPhoto().get(photoIndex);
+        String fileId = telegramPhoto.getFileId();
+        ResponseEntity<String> response = getFilePath(fileId); // http get запрос к серверу телеграма
+        if (response.getStatusCode() == HttpStatus.OK) {
+            BinaryContent persistentBinaryContent = getPersistentBinaryContent(response);
+            AppPhoto transientAppPhoto = buildTransientAppPhoto(telegramPhoto, persistentBinaryContent);
+            return appPhotoDAO.save(transientAppPhoto); // сохранение в БД, вернется persistentObject
+        } else {
+            throw new UploadFileException("Bad response from telegram service: " + response); // кастомное исключение
+        }
+    }
 
     private BinaryContent getPersistentBinaryContent(ResponseEntity<String> response) {
         String filePath = getFilePath(response);
@@ -125,13 +106,13 @@ public class FileServiceImpl implements FileService {
                 .build();
     }
 
-//    private AppPhoto buildTransientAppPhoto(PhotoSize telegramPhoto, BinaryContent persistentBinaryContent) {
-//        return AppPhoto.builder()
-//                .telegramFileId(telegramPhoto.getFileId())
-//                .binaryContent(persistentBinaryContent)
-//                .fileSize(telegramPhoto.getFileSize())
-//                .build();
-//    }
+    private AppPhoto buildTransientAppPhoto(PhotoSize telegramPhoto, BinaryContent persistentBinaryContent) {
+        return AppPhoto.builder()
+                .telegramFileId(telegramPhoto.getFileId())
+                .binaryContent(persistentBinaryContent)
+                .fileSize(telegramPhoto.getFileSize())
+                .build();
+    }
 
     private ResponseEntity<String> getFilePath(String fileId) {
         RestTemplate restTemplate = new RestTemplate(); // спринговый инструмент, сделать исходящий запрос
@@ -165,11 +146,11 @@ public class FileServiceImpl implements FileService {
         }
     }
 
-//    @Override
-//    public String generateLink(Long docId, LinkType linkType) {
-//        // получение хэша и вставка в ссылку вместо номера id документа/фото
-//        var hash = cryptoTool.hashOf(docId);
-//        return "http://" + linkAddress + "/" + linkType + "?id=" + hash;
-//    }
+    @Override
+    public String generateLink(Long docId, LinkType linkType) {
+        // получение хэша и вставка в ссылку вместо номера id документа/фото
+        var hash = cryptoTool.hashOf(docId);
+        return "http://" + linkAddress + "/" + linkType + "?id=" + hash;
+    }
 
 }
