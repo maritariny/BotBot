@@ -10,5 +10,5 @@ public interface FileService {
     AppPhoto getPhoto(String id);
 
     // преобразование массива байт в объект FileSystemResource, который необходим для передачи контента в теле http-ответа
-    FileSystemResource getFileSystemResource(BinaryContent binaryContent);
+    //FileSystemResource getFileSystemResource(BinaryContent binaryContent);
 }

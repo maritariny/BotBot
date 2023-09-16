@@ -51,17 +51,17 @@ public class FileServiceImpl implements FileService {
         return appPhotoDAO.findById(id).orElse(null);
     }
 
-    @Override
-    public FileSystemResource getFileSystemResource(BinaryContent binaryContent) {
-        try {
-            //TODO доабвить генерацию имени временного файла (т.к., возможно, оно может быть не уникальным)
-            File temp = File.createTempFile("tempFile", ".bin");
-            temp.deleteOnExit(); // При завершении работы приложения файл будет удален из постоянной памяти компьютера (метод регистрирует файл в очереди на удаление)
-            FileUtils.writeByteArrayToFile(temp, binaryContent.getFileAsArrayOfBytes());
-            return new FileSystemResource(temp);
-        } catch (IOException e) {
-            log.error(e);
-            return null;
-        }
-    }
+//    @Override
+//    public FileSystemResource getFileSystemResource(BinaryContent binaryContent) {
+//        try {
+//            //TODO доабвить генерацию имени временного файла (т.к., возможно, оно может быть не уникальным)
+//            File temp = File.createTempFile("tempFile", ".bin");
+//            temp.deleteOnExit(); // При завершении работы приложения файл будет удален из постоянной памяти компьютера (метод регистрирует файл в очереди на удаление)
+//            FileUtils.writeByteArrayToFile(temp, binaryContent.getFileAsArrayOfBytes());
+//            return new FileSystemResource(temp);
+//        } catch (IOException e) {
+//            log.error(e);
+//            return null;
+//        }
+//    }
 }

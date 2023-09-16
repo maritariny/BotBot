@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.maritariny.service.FileService;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 @Log4j
 @RequestMapping("/file") // подойдет для ссылок http://localhost:8086/file/get-doc, http://localhost:8086/file/get-photo
 @RestController // означает, что в ответ вернем роут дата
@@ -20,44 +23,80 @@ public class FileController {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/get-doc")
-    public ResponseEntity<?> getDoc(@RequestParam("id") String id) {
+    public void getDoc(@RequestParam("id") String id, HttpServletResponse response) { // второй парамет добавили для перехвата респонса (доработка по удалению временных файлов, точнее они больше не используются)
         // возвращаемое значение ResponseEntity - это спринговый класс-билдер, к-ый помогает удобно собрать http-ответ
         // @RequestParam() - описывает параметры, которые могут прийти в гет-запросе
         //TODO для формирования badRequest добавить ControllerAdvice (для формирования детальных ошибок и детализированных ответов пользователю)
         var doc = fileServive.getDocument(id);
         if (doc == null) {
-            return ResponseEntity.badRequest().build(); // 400
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            //return ResponseEntity.badRequest().build(); // 400 - Закомментировано, т.е. респонс перехвачен выше
+            return;
         }
-        var binaryContent = doc.getBinaryContent();
-        var fileSystemResource = fileServive.getFileSystemResource(binaryContent);
+        response.setContentType(MediaType.parseMediaType(doc.getMimeType()).toString()); // добавление хедера с типом содержимого (по-новому для респонса)
+        response.setHeader("Content-disposition", "attachment; filename=" + doc.getDocName());// указывает клиенту (барузеру) как именно воспринимать информацию (attachment = скачать файл
+        // если его не добавить, то изображение или документ сразу откроются в окне браузера)
+        response.setStatus(HttpServletResponse.SC_OK);
 
-        if (fileSystemResource == null) {
-            return ResponseEntity.internalServerError().build(); // 500 документ найден в базе, но почему-то не смогли его вернуть. Ошибка на стороне сервера
+        var binaryContent = doc.getBinaryContent();
+
+        try {
+            var out = response.getOutputStream();
+            out.write(binaryContent.getFileAsArrayOfBytes());
+            out.close();
+        } catch (IOException e) {
+            log.error(e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR); // 500
         }
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(doc.getMimeType())) // добавление хедера с типом содержимого
-                .header("Content-disposition", "attachment; filename=" + doc.getDocName())// указывает клиенту (барузеру) как именно воспринимать информацию (attachment = скачать файл
-                // если его не добавить, то изображение или документ сразу откроются в окне браузера)
-                .body(fileSystemResource);
+
+        // Старый вариант с временными файлами
+//        var fileSystemResource = fileServive.getFileSystemResource(binaryContent);
+//
+//        if (fileSystemResource == null) {
+//            return ResponseEntity.internalServerError().build(); // 500 документ найден в базе, но почему-то не смогли его вернуть. Ошибка на стороне сервера
+//        }
+//        return ResponseEntity.ok()
+//                .contentType(MediaType.parseMediaType(doc.getMimeType())) // добавление хедера с типом содержимого
+//                .header("Content-disposition", "attachment; filename=" + doc.getDocName())// указывает клиенту (барузеру) как именно воспринимать информацию (attachment = скачать файл
+//                // если его не добавить, то изображение или документ сразу откроются в окне браузера)
+//                .body(fileSystemResource);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/get-photo")
-    public ResponseEntity<?> getPhoto(@RequestParam("id") String id) {
+    public void getPhoto(@RequestParam("id") String id, HttpServletResponse response) {
         //TODO для формирования badRequest добавить ControllerAdvice
         var photo = fileServive.getPhoto(id);
         if (photo == null) {
-            return ResponseEntity.badRequest().build(); // 400
+            //return ResponseEntity.badRequest().build(); // 400
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
         }
-        var binaryContent = photo.getBinaryContent();
-        var fileSystemResource = fileServive.getFileSystemResource(binaryContent);
+        response.setContentType(MediaType.IMAGE_JPEG.toString()); // добавление хедера с типом содержимого (по-новому для респонса)
+        response.setHeader("Content-disposition", "attachment;");// указывает клиенту (барузеру) как именно воспринимать информацию (attachment = скачать файл
+        // если его не добавить, то изображение или документ сразу откроются в окне браузера)
+        response.setStatus(HttpServletResponse.SC_OK);
 
-        if (fileSystemResource == null) {
-            return ResponseEntity.internalServerError().build(); // 500 документ найден в базе, но почему-то не смогли его вернуть. Ошибка на стороне сервера
+        var binaryContent = photo.getBinaryContent();
+
+        try {
+            var out = response.getOutputStream();
+            out.write(binaryContent.getFileAsArrayOfBytes());
+            out.close();
+        } catch (IOException e) {
+            log.error(e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR); // 500
         }
-        return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG) // добавление хедера с типом содержимого
-                .header("Content-disposition", "attachment;")// указывает клиенту (барузеру) как именно воспринимать информацию (attachment = скачать файл
-                // если его не добавить, то изображение или документ сразу откроются в окне браузера)
-                .body(fileSystemResource);
+
+
+//        var fileSystemResource = fileServive.getFileSystemResource(binaryContent);
+//
+//        if (fileSystemResource == null) {
+//            return ResponseEntity.internalServerError().build(); // 500 документ найден в базе, но почему-то не смогли его вернуть. Ошибка на стороне сервера
+//        }
+//        return ResponseEntity.ok()
+//                .contentType(MediaType.IMAGE_JPEG) // добавление хедера с типом содержимого
+//                .header("Content-disposition", "attachment;")// указывает клиенту (барузеру) как именно воспринимать информацию (attachment = скачать файл
+//                // если его не добавить, то изображение или документ сразу откроются в окне браузера)
+//                .body(fileSystemResource);
     }
 }
